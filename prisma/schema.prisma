@@ -1,0 +1,21 @@
+// Prisma schema — Mural (guestbook)
+// Neon con pooler: url (pooled) para runtime, directUrl (directa) para migraciones.
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // pooled (-pooler), runtime
+  directUrl = env("DIRECT_URL")   // directa, migraciones
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Message {
+  id        BigInt   @id @default(autoincrement())
+  name      String   @db.VarChar(50)
+  body      String   @db.VarChar(280)
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}

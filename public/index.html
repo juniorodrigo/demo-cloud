@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mural</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📌</text></svg>" />
+  </head>
+  <body>
+    <main class="container">
+      <!-- Encabezado editable: cámbialo para la demo del redeploy -->
+      <header class="hero">
+        <h1>📌 Mural</h1>
+        <p class="subtitle">Deja tu mensaje en el muro público.</p>
+      </header>
+
+      <form id="message-form" class="card form" autocomplete="off">
+        <div class="field">
+          <label for="name">Nombre</label>
+          <input id="name" name="name" type="text" maxlength="50" required placeholder="Tu nombre" />
+        </div>
+        <div class="field">
+          <label for="body">Mensaje</label>
+          <textarea id="body" name="body" maxlength="280" required rows="3" placeholder="Escribe algo..."></textarea>
+          <span class="counter"><span id="count">0</span>/280</span>
+        </div>
+        <button type="submit" id="submit">Publicar</button>
+        <p id="error" class="error" role="alert" hidden></p>
+      </form>
+
+      <section id="messages" class="messages" aria-live="polite">
+        <p class="empty">Cargando mensajes...</p>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
