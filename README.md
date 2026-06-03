@@ -1,4 +1,4 @@
-# Proyecto de la demo — "Mural" (para construir con Claude Code)
+# Proyecto de la demo — "Mural"
 
 > App full-stack mínima para desplegar con **Coolify** + **NeonDB (Prisma)**, optimizada para **no crashear al buildear en una VM de 1 GB de RAM**.
 > Al final: **prompt listo para copiar y pegar** en Claude Code.
@@ -183,3 +183,60 @@ git push -u origin main
 ```
 
 En Coolify: build pack **Dockerfile**, variables `DATABASE_URL` + `DIRECT_URL`, puerto **3000**, health check **`/health`**. Si la VM tiene 1 GB, **activa swap** o usa la opción de **build en CI + imagen en ghcr.io**.
+
+---
+
+## Despliegue real (Docker + CI/CD + Caddy + Cloudflare)
+
+Flujo objetivo (sin compilar nunca en la VM):
+
+```
+git push → GitHub Actions (build amd64 → ghcr.io) → SSH a la VM → docker compose pull && up -d
+Caddy (contenedor aparte, red "web") → reverse_proxy mural:3000
+Cloudflare (modo Flexible) pone el HTTPS; la VM solo expone HTTP (puerto 80) vía Caddy.
+DB: NeonDB (Postgres gestionado, externo) por DATABASE_URL (pooled) y DIRECT_URL (directa).
+```
+
+### Build y prueba en local
+
+```bash
+cp .env.example .env            # pega tus URLs de Neon (pooled y directa)
+docker build -t mural:local .
+docker run --rm -p 3000:3000 --env-file .env mural:local
+# health
+curl -s localhost:3000/health   # -> {"status":"ok"}
+```
+
+> Las migraciones se aplican **al arrancar el contenedor** (`prisma migrate deploy`, usa `DIRECT_URL`); `prisma generate` ocurre en el build.
+
+### CI/CD (GitHub Actions → ghcr.io)
+
+`.github/workflows/deploy.yml` se dispara con cada `push` a `main`:
+
+1. **build**: construye la imagen `linux/amd64` y la publica como `ghcr.io/juniorodrigo/mural:latest` (login con `GITHUB_TOKEN`, permiso `packages: write`).
+2. **deploy**: entra por SSH a la VM y corre `cd ~/mural && docker compose pull && docker compose up -d && docker image prune -f`.
+
+**Secrets del repo** (Settings → Secrets and variables → Actions):
+
+| Secret       | Descripción                                  |
+| ------------ | -------------------------------------------- |
+| `VM_HOST`    | IP o host de la VM Oracle                    |
+| `VM_USER`    | usuario SSH (p. ej. `ubuntu`)                |
+| `VM_SSH_KEY` | clave privada SSH con acceso a la VM         |
+
+### Preparar la VM (una sola vez)
+
+```bash
+# Red compartida con Caddy
+docker network create web
+
+mkdir -p ~/mural && cd ~/mural
+# Sube docker-compose.yml y crea .env con DATABASE_URL, DIRECT_URL (sin secretos en git)
+
+# Si el paquete de ghcr es privado, autentícate para poder hacer pull:
+echo "$GHCR_PAT" | docker login ghcr.io -u juniorodrigo --password-stdin
+```
+
+`docker-compose.yml` levanta el contenedor `mural` en la red `web`, sin publicar puertos (`expose: 3000`). Caddy, en la misma red, hace `reverse_proxy mural:3000` (ver [docs/caddy.md](docs/caddy.md)). Cloudflare en modo **Flexible** aporta el HTTPS público; la VM solo expone HTTP por el 80 vía Caddy.
+
+> **Recursos:** VM micro 1 OCPU / 1 GB / amd64. Sin PM2 — Docker supervisa con `restart: unless-stopped`. TZ de los contenedores: `America/Lima`.

@@ -2,7 +2,10 @@
 FROM node:24-alpine
 
 WORKDIR /app
-ENV NODE_ENV=production PORT=3000
+
+# Zona horaria America/Lima dentro del contenedor.
+RUN apk add --no-cache tzdata
+ENV NODE_ENV=production PORT=3000 TZ=America/Lima
 
 # Instala solo dependencias de producción (incluye prisma y @prisma/client).
 COPY package*.json ./

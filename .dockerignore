@@ -1,8 +1,12 @@
 node_modules
 npm-debug.log*
+*.log
 .env
 .env.local
 .git
 .gitignore
+Dockerfile
+docker-compose.yml
 *.md
+docs
 .DS_Store

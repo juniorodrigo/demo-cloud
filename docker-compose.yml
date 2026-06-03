@@ -1,0 +1,18 @@
+# Se ejecuta en la VM, en ~/mural. La imagen ya viene construida desde ghcr.io.
+# Caddy (en otro compose, misma red "web") hace reverse_proxy a mural:3000.
+services:
+  mural:
+    container_name: mural
+    image: ghcr.io/juniorodrigo/mural:latest
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - TZ=America/Lima
+    expose:
+      - "3000"
+    networks:
+      - web
+
+networks:
+  web:
+    external: true
